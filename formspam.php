@@ -44,7 +44,7 @@ class formSpam {
      */
     public static function getID($get = '') {
         $ip = $_SERVER['REMOTE_ADDR'];
-        $ua = $_SERVER['HTTP_USER_AGENT'];
+        $ua = @$_SERVER['HTTP_USER_AGENT'];
         $ref = @$_SERVER['HTTP_REFERER'];
         $payload = json_encode($_POST);
         $sig = md5(base64_encode($ip.$ua));
