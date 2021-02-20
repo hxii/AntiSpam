@@ -9,6 +9,9 @@
 
 class formSpam {
 
+    public static $logfile = 'log.txt';
+    public static $rulefile = 'rules.txt';
+
     /**
      * Check if current visitor is banned
      *
@@ -27,7 +30,7 @@ class formSpam {
      */
     public static function ban($banBy = 'sig') {
         $id = self::getID($banBy);
-        $fh = fopen('banned.txt','a+');
+        $fh = fopen(self::$rulefile,'a+');
         fwrite($fh, $id.PHP_EOL);
         fclose($fh);
     }
@@ -36,18 +39,19 @@ class formSpam {
     /**
      * Get current visitor details: IP, User-Agent, Referer and Signature which is a hash of the IP and User-Agent
      *
-     * @param string $get empty ('') to get all details or 'ip', 'ua', 'ref' or 'sig'
+     * @param string $get empty ('') to get all details or 'ip', 'ua', 'ref', 'sig' or 'payload'
      * @return void
      */
     public static function getID($get = '') {
         $ip = $_SERVER['REMOTE_ADDR'];
         $ua = $_SERVER['HTTP_USER_AGENT'];
         $ref = @$_SERVER['HTTP_REFERER'];
+        $payload = json_encode($_POST);
         $sig = md5(base64_encode($ip.$ua));
         if (!empty($get)) {
             return $$get;
         }
-        return "ip:{$ip}\tua:{$ua}\tref:{$ref}\tsig:{$sig}";
+        return "ip:{$ip}\tua:{$ua}\tref:{$ref}\tsig:{$sig}\tpayload:{$payload}";
     }
     
     /**
@@ -58,7 +62,7 @@ class formSpam {
      * @return bool|string returns false if visitor is not banned, or logs and returns the infraction in case the visitor is banned
      */
     private static function checkDB(string $id) {
-        $fh = fopen('rules.txt','r');
+        $fh = fopen(self::$rulefile,'r');
         $return = false;
         $rule = 0;
         while (!feof($fh)) {
@@ -85,10 +89,11 @@ class formSpam {
      * @return string reference ID that you can trace in the log.
      */
     private static function logInfraction($id, $rule) {
-        $fh = fopen('log.txt', 'a+');
+        $fh = fopen(self::$logfile, 'a+');
         $date = date(DATE_RFC3339, microtime(true));
         $refid = "r$rule-".md5(base64_encode($date.$id));
-        fwrite($fh, "$date ($refid) - $id".PHP_EOL);
+        $payload = json_encode($_POST);
+        fwrite($fh, "$date ($refid) - $id - $payload".PHP_EOL);
         return $refid;
     }
 
